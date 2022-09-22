@@ -11,6 +11,15 @@ class AMyShooterCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	/*UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	*/	class USkeletalMeshComponent* Mesh;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+		class UStaticMeshComponent* Gun;
+		
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+		class USceneComponent* MuzzleLocation;
+
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -29,7 +38,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Gameplay")
+		FVector GunOffset;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
+		TSubclassOf <class AProjectileBulletActor> ProjectileClass;
+
 protected:
+
+	virtual void BeginPlay();
+
+	void OnFire();
+
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();

@@ -8,6 +8,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "ProjectileBulletActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AMyShooterCharacter
@@ -45,11 +47,31 @@ AMyShooterCharacter::AMyShooterCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	Gun = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Gun"));
+	Gun->SetupAttachment(RootComponent);
+
+	MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
+	MuzzleLocation->SetupAttachment(Gun);
+	MuzzleLocation->SetRelativeLocation(FVector(1.0f, 1.0f, 1.0f));
+
+	GunOffset = FVector(100.0f, 0.0f, 10.0f);
+
+	ProjectileClass = AProjectileBulletActor::StaticClass();
+
+}
+
+
+void AMyShooterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Gun->AttachToComponent(Mesh, FAttachmentTransformRules
+	(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Input
-
 void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
@@ -57,8 +79,12 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyShooterCharacter::OnFire);
+
+
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMyShooterCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMyShooterCharacter::MoveRight);
+
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -76,6 +102,37 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AMyShooterCharacter::OnResetVR);
 }
 
+
+void AMyShooterCharacter::OnFire()
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnFire Started"));
+	if (ProjectileClass != NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnFire part 1"));
+
+		UWorld* const World = GetWorld();
+		if (World != nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("OnFire part 2"));
+
+			const FRotator SpawnRotation = GetControlRotation();
+			const FVector SpawnLocation = ((MuzzleLocation != nullptr) ?
+				MuzzleLocation->GetComponentLocation() :
+				GetActorLocation())
+				+ SpawnRotation.RotateVector(GunOffset);
+
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride =
+				ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+		
+			World->SpawnActor<AProjectileBulletActor>
+				(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+
+		}
+		UE_LOG(LogTemp, Warning, TEXT("OnFire part 3"));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("OnFire end"));
+}
 
 void AMyShooterCharacter::OnResetVR()
 {
