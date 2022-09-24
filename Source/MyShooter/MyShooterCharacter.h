@@ -6,19 +6,27 @@
 #include "GameFramework/Character.h"
 #include "MyShooterCharacter.generated.h"
 
+class AProjectileBulletActor;
+class AAWweapon;
+
 UCLASS(config=Game)
 class AMyShooterCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/*UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	*/	class USkeletalMeshComponent* Mesh;
+	
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
-		class UStaticMeshComponent* Gun;
+	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+		class UStaticMeshComponent* Gun;*/
 		
-	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
-		class USceneComponent* MuzzleLocation;
+	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+		class USceneComponent* MuzzleLocation;*/
+
+	/*UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Gameplay")
+		FVector GunOffset;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Spawning")
+		TSubclassOf<AProjectileBulletActor> ProjectileToSpawn;*/
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -26,9 +34,13 @@ class AMyShooterCharacter : public ACharacter
 
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+
 	class UCameraComponent* FollowCamera;
 public:
 	AMyShooterCharacter();
+
+	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+		class USkeletalMeshComponent* Mesh;*/
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -38,21 +50,19 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Gameplay")
-		FVector GunOffset;
+	UPROPERTY(VisibleDefaultsOnly, Category = "Weapon")
+		class AAWeapon* AGun;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
-		TSubclassOf <class AProjectileBulletActor> ProjectileClass;
+
+	
 
 protected:
 
-	virtual void BeginPlay();
+	virtual void BeginPlay() override;
 
-	void OnFire();
+	//void OnFire();
 
-
-	/** Resets HMD orientation in VR. */
-	void OnResetVR();
+	//void SpawnActor(FVector Loc, FRotator Rot); */
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);

@@ -15,6 +15,12 @@ public:
 	// Sets default values for this actor's properties
 	AProjectileBulletActor();
 
+	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	virtual void BeginDestroy() override;
+
 	UFUNCTION()
 		void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 					UPrimitiveComponent* OtherComp, FVector NormalImpulse,
@@ -22,6 +28,9 @@ public:
 
 	class USphereComponent* GetCollisionComponent() const;
 	class UProjectileMovementComponent* GetProjectileMovement() const;
+
+	UPROPERTY(VisibleAnywhere)
+		UStaticMeshComponent* VisualMesh;
 
 private:
 
@@ -32,10 +41,12 @@ private:
 		meta = (AllowPrivateAccess = "true"))
 		class UProjectileMovementComponent* ProjectileMovement;
 
-	UPROPERTY(EditAnywhere, Category = "BulletSpeed", meta = (AllowPrivateAccess = true))
-		float BulletInitialSpeed = 6000.0f;
+	UPROPERTY(EditDefaultsOnly , Category = "BulletSpeed", meta = (AllowPrivateAccess = true))
+		float BulletInitialSpeed = 1000.0f;
 
-	UPROPERTY(EditAnywhere, Category = "BulletSpeed", meta = (AllowPrivateAccess = true))
-		float BulletMaxSpeed = 6000.0f;
+	UPROPERTY(EditDefaultsOnly, Category = "BulletSpeed", meta = (AllowPrivateAccess = true))
+		float BulletMaxSpeed = 1000.0f;
+
+	bool bHasTickedAlready;
 
 };

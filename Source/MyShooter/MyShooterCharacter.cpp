@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProjectileBulletActor.h"
+#include "AWeapon.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AMyShooterCharacter
@@ -48,16 +49,21 @@ AMyShooterCharacter::AMyShooterCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 
-	Gun = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Gun"));
-	Gun->SetupAttachment(RootComponent);
+	/*AGun = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Gun"));
+	AGun->SetupAttachment(RootComponent);
 
 	MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
 	MuzzleLocation->SetupAttachment(Gun);
 	MuzzleLocation->SetRelativeLocation(FVector(1.0f, 1.0f, 1.0f));
 
-	GunOffset = FVector(100.0f, 0.0f, 10.0f);
+	GunOffset = FVector(1.0f, 0.0f, 10.0f);
+	*/
+	//AGun->GetVisualMesh()->SetupAttachment(RootComponent);
+	
+	//AGun = CreateDefaultSubobject<AAWeapon>(TEXT("Gun"));
 
-	ProjectileClass = AProjectileBulletActor::StaticClass();
+
+	
 
 }
 
@@ -66,8 +72,17 @@ void AMyShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Gun->AttachToComponent(Mesh, FAttachmentTransformRules
-	(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	//AGun->GetVisualMesh()->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GunSocket"));
+	
+	//AGun->GetVisualMesh()->AttachTo(GetMesh(), "GunSocket");
+	///*Gun->AttachToComponent(Mesh, FAttachmentTransformRules
+	//(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));*/
+	//FVector GetActorPos = GetActorLocation();
+
+
+	/*UE_LOG(LogTemp, Warning, TEXT("Player X: %f"), GetActorPos.X);
+	UE_LOG(LogTemp, Warning, TEXT("Player Y: %f"), GetActorPos.Y);
+	UE_LOG(LogTemp, Warning, TEXT("Player Z: %f"), GetActorPos.Z);*/
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -79,7 +94,7 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyShooterCharacter::OnFire);
+	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyShooterCharacter::OnFire);
 
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMyShooterCharacter::MoveForward);
@@ -98,46 +113,33 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AMyShooterCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &AMyShooterCharacter::TouchStopped);
 
-	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AMyShooterCharacter::OnResetVR);
+
 }
 
+//void AMyShooterCharacter::SpawnActor(FVector Loc, FRotator Rot)
+//{
+//	UWorld* const World = GetWorld();
+//
+//	FActorSpawnParameters ActorSpawnParams;
+//	//ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+//
+//	UE_LOG(LogTemp, Warning, TEXT("Spawning a projectile"));
+//
+//	AProjectileBulletActor* SpawnedActorRef = World->SpawnActor<AProjectileBulletActor>(ProjectileToSpawn, Loc, Rot, ActorSpawnParams);
+//
+//	UE_LOG(LogTemp, Warning, TEXT("Spawned a projectile"));
+//}
 
-void AMyShooterCharacter::OnFire()
-{
-	UE_LOG(LogTemp, Warning, TEXT("OnFire Started"));
-	if (ProjectileClass != NULL)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("OnFire part 1"));
-
-		UWorld* const World = GetWorld();
-		if (World != nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("OnFire part 2"));
-
-			const FRotator SpawnRotation = GetControlRotation();
-			const FVector SpawnLocation = ((MuzzleLocation != nullptr) ?
-				MuzzleLocation->GetComponentLocation() :
-				GetActorLocation())
-				+ SpawnRotation.RotateVector(GunOffset);
-
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride =
-				ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		
-			World->SpawnActor<AProjectileBulletActor>
-				(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-
-		}
-		UE_LOG(LogTemp, Warning, TEXT("OnFire part 3"));
-	}
-	UE_LOG(LogTemp, Warning, TEXT("OnFire end"));
-}
-
-void AMyShooterCharacter::OnResetVR()
-{
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
+//void AMyShooterCharacter::OnFire()
+//{
+//	UE_LOG(LogTemp, Warning, TEXT("OnFire started"));
+//
+//	FRotator Rot((0.0f, 0.0f, 0.0f));
+//	FVector Loc = GetActorLocation() + (0.0f, 50.0f, 0.0f);
+//	SpawnActor(Loc, Rot);
+//
+//	UE_LOG(LogTemp, Warning, TEXT("OnFire end"));
+//}
 
 void AMyShooterCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
