@@ -219,17 +219,8 @@ void AMyShooterCharacter::FireWeapon()
 {
 	if (bIsAiming && bPlayerHasWeapon)
 	{
-		if (Weapon->AmmoLoaded < 0)
-		{
-			Weapon->AmmoLoaded = 0;
-		}
 
-		if (Weapon->AmmoReserve < 0)
-		{
-			Weapon->AmmoReserve = 0;
-		}
-
-		if (Weapon->AmmoLoaded == 0)
+		if (Weapon->AmmoLoaded <= 0)
 		{
 			UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->EmptyMagSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
 			return;
@@ -241,7 +232,11 @@ void AMyShooterCharacter::FireWeapon()
 		
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->FireSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
 		--(Weapon->AmmoLoaded);
+
 	}
+
+
+	
 }
 
 void AMyShooterCharacter::ReloadWeapon()
@@ -278,6 +273,15 @@ void AMyShooterCharacter::ReloadWeapon()
 
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->ReloadSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
 
+	if (Weapon->AmmoLoaded < 0)
+	{
+		Weapon->AmmoLoaded = 0;
+	}
+
+	if (Weapon->AmmoReserve < 0)
+	{
+		Weapon->AmmoReserve = 0;
+	}
 	
 }
 
