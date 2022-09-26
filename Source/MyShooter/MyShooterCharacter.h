@@ -7,36 +7,18 @@
 #include "MyShooterCharacter.generated.h"
 
 class AProjectileBulletActor;
-class AAWweapon;
+class AWweapon;
+
+
+//Character, which we will control
 
 UCLASS(config=Game)
 class AMyShooterCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	
-
-	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
-		class UStaticMeshComponent* Gun;*/
-		
-	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
-		class USceneComponent* MuzzleLocation;*/
-
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Gameplay")
-		FVector GunOffset;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Spawning")
-		TSubclassOf<AProjectileBulletActor> ProjectileToSpawn;*/
-
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
-
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-
-	class UCameraComponent* FollowCamera;
 public:
+
 	AMyShooterCharacter();
 
 	/*UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
@@ -50,19 +32,30 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Weapon")
-		class AAWeapon* AGun;
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	/** Returns FollowCamera subobject **/
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 
-	
+private:
+	/** Camera boom positioning the camera behind the character */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class USpringArmComponent* CameraBoom;
+
+	/** Follow camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+
+		class UCameraComponent* FollowCamera;
 
 protected:
 
 	virtual void BeginPlay() override;
 
-	//void OnFire();
-
-	//void SpawnActor(FVector Loc, FRotator Rot); */
+	// APawn interface
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	// End of APawn interface
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -70,33 +63,56 @@ protected:
 	/** Called for side to side input */
 	void MoveRight(float Value);
 
-	/** 
-	 * Called via input to turn at a given rate. 
+	void Jump();
+
+	/**
+	 * Called via input to turn at a given rate.
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void TurnAtRate(float Rate);
 
 	/**
-	 * Called via input to turn look up/down at a given rate. 
+	 * Called via input to turn look up/down at a given rate.
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void LookUpAtRate(float Rate);
 
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
-	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// End of APawn interface
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bIsAiming;
 
-public:
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bPlayerHasWeapon;
+
+	UFUNCTION()
+	void FireWeapon();
+
+	UFUNCTION()
+		void Interact();
+
+	UFUNCTION()
+		void DropWeapon();
+
+	UFUNCTION()
+		void SpawnWeapon();
+
+	UFUNCTION(BlueprintCallable)
+		int GetAmmoLoaded();
+
+	UFUNCTION(BlueprintCallable)
+		int GetAmmoReserve();
+
+	UFUNCTION()
+		void ReloadWeapon();
+
+private:
+	UPROPERTY(EditAnywhere)
+		TSubclassOf<class AWeapon> WeaponClass;
+
+	class AWeapon* Weapon;
+
+
 };
 

@@ -10,10 +10,12 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProjectileBulletActor.h"
-#include "AWeapon.h"
+#include "Weapon.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
-// AMyShooterCharacter
+// AMyShooterCharacter 
 
 AMyShooterCharacter::AMyShooterCharacter()
 {
@@ -46,47 +48,19 @@ AMyShooterCharacter::AMyShooterCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
-
-	/*AGun = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Gun"));
-	AGun->SetupAttachment(RootComponent);
-
-	MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
-	MuzzleLocation->SetupAttachment(Gun);
-	MuzzleLocation->SetRelativeLocation(FVector(1.0f, 1.0f, 1.0f));
-
-	GunOffset = FVector(1.0f, 0.0f, 10.0f);
-	*/
-	//AGun->GetVisualMesh()->SetupAttachment(RootComponent);
-	
-	//AGun = CreateDefaultSubobject<AAWeapon>(TEXT("Gun"));
-
-
-	
-
 }
-
 
 void AMyShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//AGun->GetVisualMesh()->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GunSocket"));
-	
-	//AGun->GetVisualMesh()->AttachTo(GetMesh(), "GunSocket");
-	///*Gun->AttachToComponent(Mesh, FAttachmentTransformRules
-	//(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));*/
-	//FVector GetActorPos = GetActorLocation();
-
-
-	/*UE_LOG(LogTemp, Warning, TEXT("Player X: %f"), GetActorPos.X);
-	UE_LOG(LogTemp, Warning, TEXT("Player Y: %f"), GetActorPos.Y);
-	UE_LOG(LogTemp, Warning, TEXT("Player Z: %f"), GetActorPos.Z);*/
+	bIsAiming = false;
+	bPlayerHasWeapon = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Input
+
 void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
@@ -94,7 +68,11 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyShooterCharacter::OnFire);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyShooterCharacter::FireWeapon);
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AMyShooterCharacter::Interact);
+	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &AMyShooterCharacter::DropWeapon);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AMyShooterCharacter::ReloadWeapon);
+
 
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMyShooterCharacter::MoveForward);
@@ -108,47 +86,6 @@ void AMyShooterCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMyShooterCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMyShooterCharacter::LookUpAtRate);
-
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AMyShooterCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AMyShooterCharacter::TouchStopped);
-
-
-}
-
-//void AMyShooterCharacter::SpawnActor(FVector Loc, FRotator Rot)
-//{
-//	UWorld* const World = GetWorld();
-//
-//	FActorSpawnParameters ActorSpawnParams;
-//	//ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-//
-//	UE_LOG(LogTemp, Warning, TEXT("Spawning a projectile"));
-//
-//	AProjectileBulletActor* SpawnedActorRef = World->SpawnActor<AProjectileBulletActor>(ProjectileToSpawn, Loc, Rot, ActorSpawnParams);
-//
-//	UE_LOG(LogTemp, Warning, TEXT("Spawned a projectile"));
-//}
-
-//void AMyShooterCharacter::OnFire()
-//{
-//	UE_LOG(LogTemp, Warning, TEXT("OnFire started"));
-//
-//	FRotator Rot((0.0f, 0.0f, 0.0f));
-//	FVector Loc = GetActorLocation() + (0.0f, 50.0f, 0.0f);
-//	SpawnActor(Loc, Rot);
-//
-//	UE_LOG(LogTemp, Warning, TEXT("OnFire end"));
-//}
-
-void AMyShooterCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		Jump();
-}
-
-void AMyShooterCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		StopJumping();
 }
 
 void AMyShooterCharacter::TurnAtRate(float Rate)
@@ -179,15 +116,169 @@ void AMyShooterCharacter::MoveForward(float Value)
 
 void AMyShooterCharacter::MoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
 }
+
+void AMyShooterCharacter::Jump()
+{
+	if (!bIsAiming)
+	{
+		Super::Jump();
+	}
+}
+
+
+void AMyShooterCharacter::Interact()
+{
+	FVector Start = GetMesh()->GetSocketLocation(FName("headSocket"));
+
+	FVector End = Start + FollowCamera->GetComponentRotation().Vector() * 2000.0f;
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Pawn, Params))
+	{
+		if (AActor* HitActor = HitResult.GetActor())
+		{
+			if (Cast<AWeapon>(HitActor))
+			{
+				if (bPlayerHasWeapon)
+				{
+					DropWeapon();
+				}
+				HitActor->Destroy();
+				SpawnWeapon();
+			}
+		}
+	}
+}
+
+void AMyShooterCharacter::DropWeapon()
+{
+	if (bPlayerHasWeapon)
+	{
+		bIsAiming = false;
+		if (Weapon)
+		{
+			Weapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			Weapon->VisualMesh->SetSimulatePhysics(true);
+			Weapon->VisualMesh->SetCollisionProfileName(FName("Pawn"));
+			bPlayerHasWeapon = false;
+		}
+	}
+}
+
+void AMyShooterCharacter::SpawnWeapon()
+{
+	if (WeaponClass)
+	{
+		FTransform WeaponTransform;
+		WeaponTransform.SetLocation(FVector::ZeroVector);
+		WeaponTransform.SetRotation(FQuat(FRotator::ZeroRotator));
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.bNoFail = true;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		Weapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, WeaponTransform, SpawnParams);
+		Weapon->VisualMesh->SetSimulatePhysics(false);
+		Weapon->VisualMesh->SetCollisionProfileName(FName("NoCollision"));
+
+
+		if (Weapon)
+		{
+			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("s_hand_r"));
+
+			bPlayerHasWeapon = true;
+		}
+	}
+}
+
+int AMyShooterCharacter::GetAmmoLoaded()
+{
+	return Weapon->AmmoLoaded;
+}
+
+int AMyShooterCharacter::GetAmmoReserve()
+{
+	return Weapon->AmmoReserve;
+}
+
+void AMyShooterCharacter::FireWeapon()
+{
+	if (bIsAiming && bPlayerHasWeapon)
+	{
+		if (Weapon->AmmoLoaded < 0)
+		{
+			Weapon->AmmoLoaded = 0;
+		}
+
+		if (Weapon->AmmoReserve < 0)
+		{
+			Weapon->AmmoReserve = 0;
+		}
+
+		if (Weapon->AmmoLoaded == 0)
+		{
+			UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->EmptyMagSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
+			return;
+		}
+
+		FRotator BulletRotation = FollowCamera->GetComponentRotation();
+		FVector BulletLocation = (Weapon->MuzzleLocation->GetSocketLocation(FName("s_muzzle")));
+		Weapon->SpawnActor(BulletLocation, BulletRotation);
+		
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->FireSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
+		--(Weapon->AmmoLoaded);
+	}
+}
+
+void AMyShooterCharacter::ReloadWeapon()
+{
+	if (!bPlayerHasWeapon)
+	{
+		return;
+	}
+
+	if ((Weapon->AmmoLoaded == Weapon->MagazineCapacity) || (Weapon->AmmoReserve == 0))
+	{
+		return;
+	}
+
+
+	if ((Weapon->AmmoLoaded > 0)  && (Weapon->AmmoLoaded < Weapon->MagazineCapacity))
+	{
+			if (Weapon->AmmoReserve + Weapon->AmmoLoaded <= Weapon->MagazineCapacity)
+			{				
+				Weapon->AmmoLoaded += Weapon->AmmoReserve;
+				Weapon->AmmoReserve = 0;
+			}
+			else
+			{
+				Weapon->AmmoReserve -= (Weapon->MagazineCapacity - Weapon->AmmoLoaded);
+				Weapon->AmmoLoaded = Weapon->MagazineCapacity;
+			}
+	}
+	else
+	{
+		Weapon->AmmoReserve -= Weapon->MagazineCapacity;
+		Weapon->AmmoLoaded = Weapon->MagazineCapacity;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Weapon->ReloadSound, GetActorLocation(), 1.0f, 1.0f, 0.0f);
+
+	
+}
+
+
